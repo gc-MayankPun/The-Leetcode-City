@@ -694,7 +694,17 @@ function HomeContent() {
           (d) => d.github_login.toLowerCase() === devData.github_login?.toLowerCase()
         );
         if (foundIdx !== -1) {
-          rawDevsRef.current[foundIdx] = { ...rawDevsRef.current[foundIdx], ...devData };
+          const existing = rawDevsRef.current[foundIdx];
+          rawDevsRef.current[foundIdx] = {
+            ...existing,
+            ...devData,
+            // Preserve decoration/customization fields — never let a null wipe existing data
+            loadout: devData.loadout ?? existing.loadout ?? null,
+            custom_color: devData.custom_color ?? existing.custom_color ?? null,
+            owned_items: devData.owned_items?.length ? devData.owned_items : existing.owned_items ?? [],
+            billboard_images: devData.billboard_images?.length ? devData.billboard_images : existing.billboard_images ?? [],
+            building_style: devData.building_style ?? existing.building_style ?? "tower",
+          };
           const layout = generateCityLayout(rawDevsRef.current);
           setBuildings(layout.buildings);
           // If their own building is currently selected, refresh the panel too
