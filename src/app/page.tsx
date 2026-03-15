@@ -3649,7 +3649,7 @@ function HomeContent() {
                         </span>
                       )}
                     </div>
-                    {session && (
+                    {session && selectedBuilding.login.toLowerCase() !== authLogin && (
                       <Link
                         href={`/shop/${authLogin}`}
                         className="btn-press mt-2 block w-full py-1.5 text-center text-[9px] text-bg"
