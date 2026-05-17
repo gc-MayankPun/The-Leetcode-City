@@ -22,7 +22,7 @@ We as members, contributors, and leaders pledge to make participation in our com
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainer at **samuel@theleetcodecity.tech** (or via DM on [X/Twitter](https://x.com/samuelrizzondev)).
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainer via DM on [LinkedIn](https://www.linkedin.com/in/ishant-singh-bisht-247a4b322/).
 
 All complaints will be reviewed and investigated. The project team is obligated to maintain confidentiality with regard to the reporter.
 

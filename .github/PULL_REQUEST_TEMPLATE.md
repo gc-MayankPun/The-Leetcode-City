@@ -15,3 +15,4 @@
 - [ ] `npm run lint` passes
 - [ ] Tested locally
 - [ ] No secrets or .env values committed
+- [ ] I acknowledge that an automated AI Reviewer will perform a preliminary review of this PR.

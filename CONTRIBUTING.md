@@ -60,7 +60,12 @@ Run `npm run lint` before submitting.
 3. Make your changes
 4. Run `npm run lint` and fix any issues
 5. Commit with a clear message (e.g. `feat: add rain weather effect`)
-6. Open a Pull Request against `main`
+6. Open a Pull Request against `main`. **Please make sure to fill out the Pull Request template provided.**
+
+### Automated PR Review
+
+To help maintain code quality and provide immediate feedback, this repository has an **Automated AI PR Reviewer** integrated via GitHub Actions. 
+When you open a Pull Request, the AI will automatically review your changes, provide a summary, and suggest potential improvements directly in the PR comments. Please consider the AI's suggestions and apply them if they improve your code!
 
 ## Commit Messages
 
@@ -134,4 +139,4 @@ Run `npm install` to pick up any new dependencies, then `npm run lint` to surfac
 
 ## Questions?
 
-Open an issue or reach out on [X/Twitter](https://x.com/samuelrizzondev).
+Open an issue or reach out on [LinkedIn](https://www.linkedin.com/in/ishant-singh-bisht-247a4b322/).
