@@ -106,7 +106,6 @@ jobs:
                 const labelsToAdd = [];
                 if (!labels.includes("Gssoc 26")) labelsToAdd.push("Gssoc 26");
                 if (!labels.includes("gssoc:approved")) labelsToAdd.push("gssoc:approved");
-                if (!labels.includes("mentor:Ixotic27")) labelsToAdd.push("mentor:Ixotic27");
                 
                 if (labelsToAdd.length > 0) {
                   await github.rest.issues.addLabels({
