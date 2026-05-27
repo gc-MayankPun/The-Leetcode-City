@@ -2140,6 +2140,7 @@ export default function ShopClient({
                 loadout={effectiveLoadout}
                 ownedFacesItems={ownedFacesItems}
                 customColor={previewColor ?? customColor}
+                ledBannerText={previewLedBannerText ?? ledBannerText}
                 billboardImages={previewBillboardImages ?? billboardImages}
                 buildingDims={buildingDims}
                 highlightItemId={highlightItem}
