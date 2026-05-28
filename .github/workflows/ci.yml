@@ -9,6 +9,7 @@ on:
 # Public Supabase keys are needed for the Next.js build to prerender pages.
 # These are the same keys embedded in the production client JS — safe to use here.
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   NEXT_PUBLIC_SUPABASE_URL: https://ykqxkfazxsyantffjouf.supabase.co
   NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrcXhrZmF6eHN5YW50ZmZqb3VmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NDYyNTEsImV4cCI6MjA4ODQyMjI1MX0.-sdtrt-WcwEQx5GScueNv9jyx7KgAfG3EHWIZdtSLa4
   NEXT_PUBLIC_BASE_URL: http://localhost:3001
