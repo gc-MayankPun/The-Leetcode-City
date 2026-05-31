@@ -4,7 +4,7 @@ on:
   issue_comment:
     types: [created]
   issues:
-    types: [unlabeled]
+    types: [unlabeled, assigned]
 
 permissions:
   issues: write
@@ -18,7 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       (github.event_name == 'issue_comment' && !github.event.issue.pull_request && github.event.comment.user.type != 'Bot') ||
-      (github.event_name == 'issues' && github.event.action == 'unlabeled')
+      (github.event_name == 'issues' && github.event.action == 'unlabeled') ||
+      (github.event_name == 'issues' && github.event.action == 'assigned')
     steps:
       - name: Handle Auto-Assignment and Triage Approval
         uses: actions/github-script@v7
@@ -167,6 +168,52 @@ jobs:
                   });
                 }
               }
+              return;
+            }
+            
+            // Handle manual assignment by maintainer through UI
+            if (context.eventName === 'issues' && context.payload.action === 'assigned') {
+              const assignee = context.payload.assignee.login;
+              if (context.payload.sender.type === 'Bot') return; // Ignore if assigned by another bot
+
+              const labels = issue.labels.map(l => l.name);
+              const isCritical = labels.includes('level:critical');
+              const deadlineText = isCritical ? '4 days (96 hours)' : '48 hours';
+
+              // Post the welcome message
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Hello @${assignee}, you have been manually assigned to work on this issue by the maintainer! 🚀 Please read the \`CONTRIBUTING.md\` file before starting.\n\n⏰ **Deadline: You have ${deadlineText} from this exact moment to submit a Pull Request for this issue.** If no PR is submitted within that time, the issue will be unassigned and made available for other contributors. This keeps the project moving and ensures everyone gets a fair opportunity!\n\n**📝 Important - PR Submission Rules:**\n1. **Branch Name:** Please name your branch starting with the issue number (e.g., \`${issue.number}-feature-name\`).\n2. **PR Description:** Make sure your Pull Request description includes \`Fixes #${issue.number}\` so it automatically links to this issue and inherits its labels.\n\n⭐ **If you're excited to contribute, please consider starring this repository to help increase its visibility and support the developer!**\n\n🔒 *This conversation will now be locked. Please use your Pull Request for any further discussion about this issue.*`
+              });
+
+              // Add GSSoC labels if not present
+              const labelsToAdd = [];
+              if (!labels.includes('Gssoc 26')) labelsToAdd.push('Gssoc 26');
+              if (!labels.includes('gssoc:approved')) labelsToAdd.push('gssoc:approved');
+
+              if (labelsToAdd.length > 0) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: labelsToAdd
+                });
+              }
+
+              // Lock the conversation
+              try {
+                await github.rest.issues.lock({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  lock_reason: 'resolved'
+                });
+              } catch (e) {
+                console.log("Could not lock issue, might already be locked:", e.message);
+              }
+
               return;
             }
 
