@@ -13,7 +13,8 @@ async function hashKey(key: string): Promise<string> {
 }
 
 async function isRateLimited(key: string): Promise<boolean> {
-  const RATE_LIMIT = parseInt(process.env.RATE_LIMIT_PER_HOUR ?? "15");
+  const rateLimitEnv = process.env.RATE_LIMIT_PER_HOUR ?? "15";
+  const RATE_LIMIT = parseInt(rateLimitEnv);
   const sb = getSupabaseAdmin();
   const ipHash = await hashKey(key);
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -135,7 +136,8 @@ export async function GET(
     .single();
 
   if (cached) {
-    const CACHE_TTL_MS = parseInt(process.env.CACHE_TTL_HOURS ?? "12") * 3600000;
+    const cacheTtlHours = process.env.CACHE_TTL_HOURS ?? "12";
+    const CACHE_TTL_MS = parseInt(cacheTtlHours) * 3600000;
     const age = Date.now() - new Date(cached.fetched_at).getTime();
     if (!forceRefresh && age < CACHE_TTL_MS) {  // 12h cache
       cachedRecord = cached;
