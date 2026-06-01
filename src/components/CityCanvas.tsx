@@ -159,11 +159,7 @@ const THEMES: CityTheme[] = [
 // Sets scene.background to the fog color so that areas beyond the fog
 // don't render as black. This also provides the backdrop behind the SkyDome.
 function SceneBackground({ color }: { color: string }) {
-  const { scene } = useThree();
-  useEffect(() => {
-    scene.background = new THREE.Color(color);
-  }, [color, scene]);
-  return null;
+  return <color attach="background" args={[color]} />;
 }
 
 // ─── Sky Dome ────────────────────────────────────────────────
@@ -415,6 +411,7 @@ function CameraFocus({
   buildings: CityBuilding[];
   focusedBuilding: string | null;
   focusedBuildingB?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   controlsRef: React.RefObject<any>;
 }) {
   const { camera } = useThree();
@@ -427,7 +424,9 @@ function CameraFocus({
 
   // Use ref for buildings to avoid re-triggering animation on array changes
   const buildingsRef = useRef(buildings);
-  buildingsRef.current = buildings;
+  useEffect(() => {
+    buildingsRef.current = buildings;
+  }, [buildings]);
 
   useEffect(() => {
     if (!focusedBuilding) {
@@ -571,6 +570,7 @@ const _yAxis = new THREE.Vector3(0, 1, 0);
 function AirplaneFlight({ onExit, onHud, onPause, pauseSignal = 0, hasOverlay = false, startPaused = false, vehicleType = "airplane", posRef }: { onExit: (aborted: boolean) => void; onHud: (s: number, a: number, x: number, z: number, yaw: number) => void; onPause: (paused: boolean) => void; pauseSignal?: number; hasOverlay?: boolean; startPaused?: boolean; vehicleType?: string; posRef?: React.MutableRefObject<THREE.Vector3> }) {
   const { camera } = useThree();
   const ref = useRef<THREE.Group>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const orbitRef = useRef<any>(null);
 
   const mouse = useRef({ x: 0, y: 0 });
@@ -667,7 +667,9 @@ function AirplaneFlight({ onExit, onHud, onPause, pauseSignal = 0, hasOverlay = 
 
   // Keyboard
   const hasOverlayRef = useRef(hasOverlay);
-  hasOverlayRef.current = hasOverlay;
+  useEffect(() => {
+    hasOverlayRef.current = hasOverlay;
+  }, [hasOverlay]);
 
   useEffect(() => {
     const doPause = () => {
@@ -864,6 +866,7 @@ function AirplaneFlight({ onExit, onHud, onPause, pauseSignal = 0, hasOverlay = 
           minDistance={20}
           maxDistance={300}
           maxPolarAngle={Math.PI / 2.1}
+          // eslint-disable-next-line react-hooks/refs
           target={pos.current.toArray() as [number, number, number]}
         />
       )}
@@ -1715,7 +1718,6 @@ function River({ river, waterColor, waterEmissive }: { river: CityRiver; waterCo
 
 function RiverText({ river }: { river: CityRiver }) {
   const [fontReady, setFontReady] = useState(false);
-  const texRef = useRef<THREE.CanvasTexture | null>(null);
 
   useEffect(() => {
     document.fonts.ready.then(() => setFontReady(true));
@@ -1756,13 +1758,14 @@ function RiverText({ river }: { river: CityRiver }) {
     tex.minFilter = THREE.NearestFilter;
     tex.generateMipmaps = false;
     tex.needsUpdate = true;
-    texRef.current = tex;
     return tex;
   }, [fontReady]);
 
   useEffect(() => {
-    return () => { texRef.current?.dispose(); };
-  }, []);
+    return () => {
+      texture?.dispose();
+    };
+  }, [texture]);
 
   if (!texture) return null;
 
@@ -1907,6 +1910,7 @@ function Waterfront({ river, dockColor }: { river: CityRiver; dockColor: string 
 // ─── Orbit Scene (controls + focus) ──────────────────────────
 
 function OrbitScene({ buildings, focusedBuilding, focusedBuildingB }: { buildings: CityBuilding[]; focusedBuilding: string | null; focusedBuildingB?: string | null }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
   const { camera } = useThree();
 
@@ -1937,6 +1941,7 @@ function OrbitScene({ buildings, focusedBuilding, focusedBuildingB }: { building
 // ─── Wallpaper Orbit (no interaction, auto-rotate + parallax) ─
 
 function WallpaperOrbitScene({ speed }: { speed: number }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
   const { camera } = useThree();
 
@@ -2013,20 +2018,64 @@ interface Props {
   wallpaperSpeed?: number;
   liveByLogin?: Map<string, LiveSession>;
   cityEnergy?: number;
-  weatherState?: "clear" | "rain" | "fog";
+  weatherState?: "clear" | "rain" | "fog" | "thunder";
 }
 
 // Dynamically adjust scene exposure based on city energy (devs coding)
 function CityExposure({ cityEnergy }: { cityEnergy: number }) {
-  const gl = useThree((s) => s.gl);
   const targetRef = useRef(1.3);
-  targetRef.current = cityEnergy; // Directly use 0.10 to 1.40 scale
 
-  useFrame(() => {
-    const current = gl.toneMappingExposure;
+  useEffect(() => {
+    targetRef.current = cityEnergy; // Directly use 0.10 to 1.40 scale
+  }, [cityEnergy]);
+
+  useFrame((state) => {
+    const current = state.gl.toneMappingExposure;
     const target = targetRef.current;
     if (Math.abs(current - target) > 0.001) {
-      gl.toneMappingExposure += (target - current) * 0.02;
+      state.gl.toneMappingExposure += (target - current) * 0.02;
+    }
+  });
+
+  return null;
+}
+
+function ThunderstormCameraShake() {
+  const shakeIntensityRef = useRef(0.0);
+  const shakeTimerRef = useRef(0.0);
+  const lastOffsetRef = useRef(new THREE.Vector3());
+
+  useEffect(() => {
+    const handleFlash = (e: Event) => {
+      const customEvt = e as CustomEvent<{ intensity: number }>;
+      const intensity = customEvt.detail?.intensity ?? 1.0;
+      shakeIntensityRef.current = intensity * 1.5;
+      shakeTimerRef.current = 0.8;
+    };
+    window.addEventListener("lc:thunder-flash", handleFlash);
+    return () => {
+      window.removeEventListener("lc:thunder-flash", handleFlash);
+    };
+  }, []);
+
+  useFrame((state, delta) => {
+    // Restore the camera by subtracting the previous frame's shake offset
+    state.camera.position.sub(lastOffsetRef.current);
+    lastOffsetRef.current.set(0, 0, 0);
+
+    if (shakeTimerRef.current > 0) {
+      shakeTimerRef.current -= delta;
+      
+      const decay = Math.max(0, shakeTimerRef.current / 0.8);
+      // Increased scaling factor for highly visible and satisfying tactile impact feedback
+      const intensity = shakeIntensityRef.current * decay * 14.5;
+
+      const ox = (Math.random() - 0.5) * intensity;
+      const oy = (Math.random() - 0.5) * intensity;
+      const oz = (Math.random() - 0.5) * intensity;
+
+      lastOffsetRef.current.set(ox, oy, oz);
+      state.camera.position.add(lastOffsetRef.current);
     }
   });
 
@@ -2036,7 +2085,7 @@ function CityExposure({ cityEnergy }: { cityEnergy: number }) {
 // Plaza indices for rabbit sightings (progressively further from center)
 const RABBIT_PLAZA_INDICES = [1, 2, 4, 7, 10]; // plazas[1]=slot3, [2]=slot7, [4]=slot18, [7]=slot42, [10]=slot75
 
-export default function CityCanvas({ buildings, plazas, decorations, river, bridges, flyMode, flyVehicle, onExitFly, onCollect, themeIndex, onHud, onPause, focusedBuilding, focusedBuildingB, accentColor, onClearFocus, onBuildingClick, onFocusInfo, flyPauseSignal, flyHasOverlay, flyStartPaused, skyAds, onAdClick, onAdViewed, introMode, onIntroEnd, raidPhase, raidData, raidAttacker, raidDefender, onRaidPhaseComplete, onLandmarkClick, rabbitSighting, onRabbitCaught, rabbitCinematic, onRabbitCinematicEnd, rabbitCinematicTarget, ghostPreviewLogin, holdRise, celebrationActive, wallpaperMode, wallpaperSpeed, liveByLogin, cityEnergy, weatherState = "clear" }: Props) {
+export default function CityCanvas({ buildings, plazas, decorations, flyMode, flyVehicle, onExitFly, onCollect, themeIndex, onHud, onPause, focusedBuilding, focusedBuildingB, accentColor, onBuildingClick, onFocusInfo, flyPauseSignal, flyHasOverlay, flyStartPaused, skyAds, onAdClick, onAdViewed, introMode, onIntroEnd, raidPhase, raidData, raidAttacker, raidDefender, onRaidPhaseComplete, onLandmarkClick, rabbitSighting, onRabbitCaught, rabbitCinematic, onRabbitCinematicEnd, rabbitCinematicTarget, ghostPreviewLogin, holdRise, celebrationActive, wallpaperMode, wallpaperSpeed, liveByLogin, cityEnergy, weatherState = "clear" }: Props) {
   const t = THEMES[themeIndex] ?? THEMES[0];
 
   const [foggyIntensity, setFoggyIntensity] = useState(0.0);
@@ -2052,9 +2101,9 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
       fogDensityMult: weatherTweenState.fogDensityMultiplier,
     };
 
-    const targetIntensity = weatherState === "fog" ? 1.0 : 0.0;
-    const targetLightMult = weatherState === "fog" ? 0.35 : 1.0;
-    const targetFogDensityMult = weatherState === "fog" ? 1.0 : 0.0;
+    const targetIntensity = weatherState === "fog" || weatherState === "thunder" ? 1.0 : 0.0;
+    const targetLightMult = weatherState === "thunder" ? 0.15 : weatherState === "fog" ? 0.35 : 1.0;
+    const targetFogDensityMult = weatherState === "thunder" ? 1.5 : weatherState === "fog" ? 1.0 : 0.0;
 
     const tween = gsap.to(targets, {
       intensity: targetIntensity,
@@ -2131,7 +2180,6 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
           requestAnimationFrame(runner);
         } catch (e) {
           // Best-effort only — surface warnings to make issues diagnosable in dev
-          // eslint-disable-next-line no-console
           console.warn("CityCanvas: failed to enforce nearest filtering", e);
         }
       }}
@@ -2140,7 +2188,8 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
     >
       {showPerf && <Stats />}
       <CityExposure cityEnergy={cityEnergy ?? 1} />
-      {weatherState === "fog" || foggyIntensity > 0.001 ? (
+      {weatherState === "thunder" && <ThunderstormCameraShake />}
+      {weatherState === "fog" || weatherState === "thunder" || foggyIntensity > 0.001 ? (
         <fogExp2 attach="fog" args={[t.fogColor, 0.015 * weatherTweenState.fogDensityMultiplier]} />
       ) : (
         <fog attach="fog" args={[t.fogColor, t.fogNear, t.fogFar]} key={`fog-${themeIndex}`} />

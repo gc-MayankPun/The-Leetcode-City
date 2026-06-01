@@ -12,6 +12,7 @@ import {
   ParticleAura,
   SpotlightEffect,
   FoggyPointLights,
+  EmergencyLights,
 } from "./BuildingEffects";
 import RaidTag3D from "./RaidTag3D";
 
@@ -80,6 +81,7 @@ const ActiveBuildingEffects = memo(function ActiveBuildingEffects({
   isGhostTarget,
   ghostEffectId,
   foggyIntensity = 0.0,
+  weatherState = "clear",
 }: {
   building: CityBuilding;
   accentColor: string;
@@ -88,6 +90,7 @@ const ActiveBuildingEffects = memo(function ActiveBuildingEffects({
   isGhostTarget: boolean;
   ghostEffectId: number;
   foggyIntensity?: number;
+  weatherState?: string;
 }) {
   return (
     <group
@@ -108,6 +111,16 @@ const ActiveBuildingEffects = memo(function ActiveBuildingEffects({
           height={building.height}
           color={accentColor}
           foggyIntensity={foggyIntensity}
+        />
+      )}
+
+      {/* Emergency lights beacons for claimed buildings under thunderstorm conditions */}
+      {building.claimed && (
+        <EmergencyLights
+          height={building.height}
+          width={building.width}
+          depth={building.depth}
+          active={weatherState === "thunder"}
         />
       )}
 
@@ -214,12 +227,12 @@ interface EffectsLayerProps {
   flyMode?: boolean;
   ghostPreviewLogin?: string | null;
   foggyIntensity?: number;
+  weatherState?: string;
 }
 
 export default function EffectsLayer({
   buildings,
   grid,
-  colors: _colors,
   accentColor,
   focusedBuilding,
   focusedBuildingB,
@@ -228,6 +241,7 @@ export default function EffectsLayer({
   flyMode,
   ghostPreviewLogin,
   foggyIntensity = 0.0,
+  weatherState = "clear",
 }: EffectsLayerProps) {
   const lastUpdate = useRef(-1);
   const activeSetRef = useRef(new Set<number>());
@@ -386,6 +400,7 @@ export default function EffectsLayer({
             isGhostTarget={isGhostTarget}
             ghostEffectId={ghostEffectId}
             foggyIntensity={foggyIntensity}
+            weatherState={weatherState}
           />
         );
       })}

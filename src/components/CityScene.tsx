@@ -9,6 +9,7 @@ import InstancedLabels from "./InstancedLabels";
 import EffectsLayer from "./EffectsLayer";
 import LiveDots from "./LiveDots";
 import FogMistWeather from "./FogMistWeather";
+import ThunderstormWeather from "./ThunderstormWeather";
 import type { LiveSession } from "@/lib/useCodingPresence";
 import type { CityBuilding } from "@/lib/github";
 import type { BuildingColors } from "./CityCanvas";
@@ -115,7 +116,7 @@ interface CitySceneProps {
   holdRise?: boolean;
   liveByLogin?: Map<string, LiveSession>;
   cityEnergy?: number;
-  weatherState?: "clear" | "rain" | "fog";
+  weatherState?: "clear" | "rain" | "fog" | "thunder";
   foggyIntensity?: number;
   fogColor?: string;
 }
@@ -295,6 +296,7 @@ export default function CityScene({
         flyMode={flyMode}
         ghostPreviewLogin={ghostPreviewLogin}
         foggyIntensity={foggyIntensity}
+        weatherState={weatherState}
       />
 
       {!introMode && weatherState === "rain" && <RainWeather />}
@@ -302,6 +304,12 @@ export default function CityScene({
         <FogMistWeather
           intensity={foggyIntensity}
           color={fogColor}
+        />
+      )}
+      {!introMode && weatherState === "thunder" && (
+        <ThunderstormWeather
+          buildings={buildings}
+          intensity={foggyIntensity}
         />
       )}
 

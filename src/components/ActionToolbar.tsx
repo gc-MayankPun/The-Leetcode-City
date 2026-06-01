@@ -11,7 +11,7 @@ interface ActionToolbarProps {
   themesLength: number;
   isMounted: boolean;
   cycleWeather?: () => void;
-  weatherMode?: "clear" | "rain" | "fog" | "live";
+  weatherMode?: "clear" | "rain" | "fog" | "thunder" | "live";
 }
 
 const ActionToolbar: React.FC<ActionToolbarProps> = ({
@@ -47,12 +47,14 @@ const ActionToolbar: React.FC<ActionToolbarProps> = ({
             {weatherMode === "clear" && "☀️"}
             {weatherMode === "rain" && "🌧️"}
             {weatherMode === "fog" && "🌫️"}
+            {weatherMode === "thunder" && "⛈️"}
             {weatherMode === "live" && "📡"}
           </span>
           <span className="text-cream">
             {weatherMode === "clear" && "CLEAR"}
             {weatherMode === "rain" && "RAIN"}
             {weatherMode === "fog" && "FOG"}
+            {weatherMode === "thunder" && "THUNDER"}
             {weatherMode === "live" && "LIVE"}
           </span>
         </button>

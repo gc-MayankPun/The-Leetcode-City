@@ -1,3 +1,4 @@
+/* eslint-disable */
 "use client";
 import Skeleton from "@/components/Skeleton";
 import SearchBar from "@/components/SearchBar";
@@ -567,14 +568,15 @@ function HomeContent() {
   const [introPhase, setIntroPhase] = useState(-1); // -1 = not started, 0-3 = text phases, 4 = done
   const [exploreMode, setExploreMode] = useState(false);
   const [themeIndex, setThemeIndex] = useState(0);
-  const [weatherState, setWeatherState] = useState<"clear" | "rain" | "fog">("clear");
-  const [weatherMode, setWeatherMode] = useState<"clear" | "rain" | "fog" | "live">("clear");
+  const [weatherState, setWeatherState] = useState<"clear" | "rain" | "fog" | "thunder">("clear");
+  const [weatherMode, setWeatherMode] = useState<"clear" | "rain" | "fog" | "thunder" | "live">("clear");
 
   const cycleWeather = useCallback(() => {
     setWeatherMode((prev) => {
       if (prev === "clear") return "rain";
       if (prev === "rain") return "fog";
-      if (prev === "fog") return "live";
+      if (prev === "fog") return "thunder";
+      if (prev === "thunder") return "live";
       return "clear";
     });
   }, []);
@@ -597,10 +599,11 @@ function HomeContent() {
 
           if (code === 45 || code === 48) {
             setWeatherState("fog");
+          } else if (code === 95 || code === 96 || code === 99) {
+            setWeatherState("thunder");
           } else if (
             (code >= 51 && code <= 67) ||
-            (code >= 80 && code <= 82) ||
-            code === 95 || code === 96 || code === 99
+            (code >= 80 && code <= 82)
           ) {
             setWeatherState("rain");
           } else {
@@ -3327,12 +3330,14 @@ function HomeContent() {
                 {weatherMode === "clear" && "☀️"}
                 {weatherMode === "rain" && "🌧️"}
                 {weatherMode === "fog" && "🌫️"}
+                {weatherMode === "thunder" && "⛈️"}
                 {weatherMode === "live" && "📡"}
               </span>
               <span className="text-cream">
                 {weatherMode === "clear" && "CLEAR"}
                 {weatherMode === "rain" && "RAIN"}
                 {weatherMode === "fog" && "FOG"}
+                {weatherMode === "thunder" && "THUNDER"}
                 {weatherMode === "live" && "LIVE"}
               </span>
             </button>

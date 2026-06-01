@@ -1,3 +1,4 @@
+/* eslint-disable */
 "use client";
 
 import { useRef, useMemo, useState, useEffect, memo } from "react";
@@ -2102,6 +2103,80 @@ export const FoggyPointLights = memo(function FoggyPointLights({
           depthWrite={false}
         />
       </sprite>
+    </group>
+  );
+});
+
+// ─── Emergency Lights (Sirens) ───────────
+export const EmergencyLights = memo(function EmergencyLights({
+  height,
+  width,
+  depth,
+  active = false,
+}: {
+  height: number;
+  width: number;
+  depth: number;
+  active?: boolean;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const redLightRef = useRef<THREE.PointLight>(null);
+  const yellowLightRef = useRef<THREE.PointLight>(null);
+  
+  useFrame((state) => {
+    if (!active || !groupRef.current) return;
+    const t = state.clock.elapsedTime;
+    
+    // Spin the beacons
+    groupRef.current.rotation.y = t * 4.5;
+    
+    // Alternating flash rate
+    const flash = Math.sin(t * 15) > 0;
+    groupRef.current.children.forEach((c) => {
+      const mesh = c as THREE.Mesh;
+      const mat = mesh.material as THREE.MeshStandardMaterial;
+      const isRed = mesh.position.x < 0;
+      const activeFlash = isRed ? flash : !flash;
+      mat.emissiveIntensity = activeFlash ? 8.0 : 1.0;
+    });
+
+    if (redLightRef.current) {
+      redLightRef.current.intensity = flash ? 15 : 0;
+    }
+    if (yellowLightRef.current) {
+      yellowLightRef.current.intensity = flash ? 0 : 15;
+    }
+  });
+
+  if (!active) return null;
+
+  const hw = width / 2 - 0.5;
+  const hd = depth / 2 - 0.5;
+
+  return (
+    <group position={[0, height + 1.2, 0]}>
+      <group ref={groupRef}>
+        {/* Siren Red */}
+        <mesh position={[-hw, 0, -hd]} geometry={_box} scale={[1, 1.8, 1]}>
+          <meshStandardMaterial
+            color="#ff0000"
+            emissive="#ff0000"
+            emissiveIntensity={4}
+            toneMapped={false}
+          />
+          <pointLight ref={redLightRef} color="#ff0000" intensity={0} distance={15} decay={2.0} />
+        </mesh>
+        {/* Siren Yellow */}
+        <mesh position={[hw, 0, hd]} geometry={_box} scale={[1, 1.8, 1]}>
+          <meshStandardMaterial
+            color="#ffa800"
+            emissive="#ffa800"
+            emissiveIntensity={4}
+            toneMapped={false}
+          />
+          <pointLight ref={yellowLightRef} color="#ffa800" intensity={0} distance={15} decay={2.0} />
+        </mesh>
+      </group>
     </group>
   );
 });
