@@ -643,32 +643,38 @@ function HomeContent() {
   const [codingPanelOpen, setCodingPanelOpen] = useState(false);
 
   useEffect(() => {
-    if (codingPanelOpen && hasVsCodeKey === null) {
-      fetch(`/api/vscode-key?t=${Date.now()}`, { cache: "no-store" })
-        .then(async (r) => {
-          if (r.status === 404) {
-            setVsCodeKeyError("claim_required");
+  if (codingPanelOpen && hasVsCodeKey === null) {
+    fetch(`/api/vscode-key?t=${Date.now()}`, { cache: "no-store" })
+      .then(async (r) => {
+        if (r.status === 404) {
+          setVsCodeKeyError("claim_required");
+          try { localStorage.removeItem("leetcodecity_has_vscode_key"); } catch {}
+          return;
+        }
+        try {
+          const d = await r.json();
+          if (r.ok && typeof d.hasKey === "boolean") {
+            setHasVsCodeKey(d.hasKey);
+            setVsCodeKeyError(null);
+            try {
+              if (d.hasKey) localStorage.setItem("leetcodecity_has_vscode_key", "1");
+              else localStorage.removeItem("leetcodecity_has_vscode_key");
+            } catch {}
+          } else {
             setHasVsCodeKey(false);
-            return;
+            try { localStorage.removeItem("leetcodecity_has_vscode_key"); } catch {}
           }
-          try {
-            const d = await r.json();
-            if (r.ok && typeof d.hasKey === "boolean") {
-              setHasVsCodeKey(d.hasKey);
-              try {
-                if (d.hasKey) localStorage.setItem("leetcodecity_has_vscode_key", "1");
-                else localStorage.removeItem("leetcodecity_has_vscode_key");
-              } catch {}
-            } else {
-              setHasVsCodeKey(false);
-            }
-          } catch {
-            setHasVsCodeKey(false);
-          }
-        })
-        .catch(() => { setHasVsCodeKey(false); });
-    }
-  }, [codingPanelOpen, hasVsCodeKey]);
+        } catch {
+          setHasVsCodeKey(false);
+          try { localStorage.removeItem("leetcodecity_has_vscode_key"); } catch {}
+        }
+      })
+      .catch(() => {
+        setHasVsCodeKey(false);
+        try { localStorage.removeItem("leetcodecity_has_vscode_key"); } catch {}
+      });
+  }
+}, [codingPanelOpen, hasVsCodeKey]);
 
   const [session, setSession] = useState<Session | null>(null);
   const [claiming, setClaiming] = useState(false);
@@ -3377,6 +3383,13 @@ function HomeContent() {
             style={{ color: analyticsOpen ? "#ffa116" : "#8c8c9c" }}
           >
             [ANALYTICS]
+          </button>
+          <button
+            onClick={() => setAnalyticsOpen((v) => !v)}
+            className="flex sm:hidden items-center gap-1 border-[3px] border-border bg-bg/70 px-2 py-1 text-[9px] backdrop-blur-sm transition-colors hover:border-border-light fixed bottom-2 right-2 z-50"
+            style={{ color: analyticsOpen ? "#ffa116" : "#8c8c9c" }}
+          >
+            📊
           </button>
           {(() => {
             const energyLabel =
