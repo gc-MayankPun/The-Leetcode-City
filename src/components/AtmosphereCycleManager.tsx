@@ -923,7 +923,7 @@ function FlyingCityShips({ cityRadius }: { cityRadius: number }) {
 
         const tx = -Math.sin(currentAngle) * s.direction;
         const tz = Math.cos(currentAngle) * s.direction;
-        const yaw = Math.atan2(-tx, -tz);
+        const yaw = Math.atan2(tx, tz);
 
         const bobbing = s.altitude + Math.sin(time * 1.5 + idx) * 1.5;
 
