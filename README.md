@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://theleetcodecity.tech">theleetcodecity.tech</a>
+  <a href="https://theleetcode.city">theleetcode.city</a>
 </p>
 
 <p align="center">
@@ -29,9 +29,10 @@ LeetCode City transforms every LeetCode profile into a unique pixel art building
 
 - **3D Pixel Art Buildings** — Each LeetCode user becomes a building with height based on submissions, width based on skill levels, and lit windows representing activity
 - **Free Flight Mode** — Fly through the city with smooth camera controls, visit any building, and explore the skyline
+- **The Arena** — Challenge others, climb the leaderboard, and unlock legendary items and titles
 - **Profile Pages** — Dedicated pages for each developer with stats, achievements, and top solved problems
 - **Achievement System** — Unlock achievements based on submissions, points, and more
-- **Building Customization** — Claim your building and customize it with items from the shop (crowns, auras, roof effects, face decorations)
+- **Building Customization** — Claim your building and customize it with items from the shop (crowns, auras, roof effects, face decorations, custom titles)
 - **Social Features** — Send kudos, gift items to other developers, refer friends, and see a live activity feed
 - **Compare Mode** — Put two developers side by side and compare their buildings and stats
 - **Share Cards** — Download shareable image cards of your profile in landscape or stories format
