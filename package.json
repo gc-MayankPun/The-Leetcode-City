@@ -2,6 +2,9 @@
   "name": "leetcode-city",
   "version": "2.0.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "description": "Your LeetCode profile as a 3D pixel art building in an interactive city",
   "homepage": "https://theleetcodecity.tech",
   "repository": {
