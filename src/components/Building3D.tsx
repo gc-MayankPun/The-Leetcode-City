@@ -623,23 +623,31 @@ return { front, side };
   }, [building, colors, atlasTexture, isBungalow, W, H, D]);
 
   // 1. Move useFrame out here so it sits at the root level of the component!
-  useFrame((state, delta) => {
-    if (!materials || materials.length === 0) return;
+useFrame((state, delta) => {
+  if (!materials || materials.length === 0) return;
 
-    materials.forEach((mat, idx) => {
-      // Index 2 and 3 are the roof material (starts at 0.6), others are walls (start at 0.85)
-      const isRoof = idx === 2 || idx === 3;
-      const baseRoughness = isRoof ? 0.6 : 0.85;
+  materials.forEach((mat, idx) => {
+    const isRoof = idx === 2 || idx === 3;
+    const baseRoughness = isRoof ? 0.6 : 0.85;
+    
+    const targetRoughness = isRaining ? 0.15 : baseRoughness;
+    const targetMetalness = isRaining ? 0.25 : 0.0;
 
-      // When raining, surfaces become highly reflective (low roughness) and slightly metallic
-      const targetRoughness = isRaining ? 0.15 : baseRoughness;
-      const targetMetalness = isRaining ? 0.25 : 0.0;
-
-      // Linearly interpolate (lerp) values over time for a smooth transition vibe
+    // Optimization: Only run calculations if current roughness hasn't reached target yet
+    if (Math.abs(mat.roughness - targetRoughness) > 0.01) {
       mat.roughness = THREE.MathUtils.lerp(mat.roughness, targetRoughness, delta * 2);
+    } else {
+      mat.roughness = targetRoughness; // Snap to target to stop wasting CPU cycles
+    }
+
+    // Optimization: Only run calculations if current metalness hasn't reached target yet
+    if (Math.abs(mat.metalness - targetMetalness) > 0.01) {
       mat.metalness = THREE.MathUtils.lerp(mat.metalness, targetMetalness, delta * 2);
-    });
+    } else {
+      mat.metalness = targetMetalness; // Snap to target to stop wasting CPU cycles
+    }
   });
+});
 
   // 2. Keep useEffect strictly for cleaning up your canvas textures on unmount
   useEffect(() => {
