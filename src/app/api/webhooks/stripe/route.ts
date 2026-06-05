@@ -84,7 +84,7 @@ export async function POST(request: Request) {
           const now = new Date();
           const endsAt = new Date(now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
 
-          await sb
+          const { data: activated } = await sb
             .from("sky_ads")
             .update({
               active: true,
@@ -92,10 +92,12 @@ export async function POST(request: Request) {
               ends_at: endsAt.toISOString(),
               purchaser_email: session.customer_details?.email ?? null,
             })
-            .eq("id", ad.id);
+            .eq("id", ad.id)
+            .eq("active", false)
+            .select("id");
 
-          // Auto-deactivate the "advertise" placeholder if same vehicle type
-          if (plan.vehicle === "plane") {
+          // Auto-deactivate the "advertise" placeholder only if this delivery won the race
+          if (activated?.length && plan.vehicle === "plane") {
             await sb
               .from("sky_ads")
               .update({ active: false })
