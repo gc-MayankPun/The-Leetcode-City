@@ -220,6 +220,7 @@ export default memo(function InstancedBuildings({
   weatherMode = "sunny",
 }: InstancedBuildingsProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
+  const initTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const count = buildings.length;
 
   const loginToIdx = useMemo(() => {
@@ -399,7 +400,9 @@ export default memo(function InstancedBuildings({
       risingRef.current = [];
     }
 
-    const safetyTimer = setTimeout(() => {
+    if (initTimeoutRef.current) clearTimeout(initTimeoutRef.current);
+
+    initTimeoutRef.current = setTimeout(() => {
       const m = meshRef.current;
       if (!m) return;
       const attr = m.geometry.getAttribute("aRise") as
@@ -422,7 +425,9 @@ export default memo(function InstancedBuildings({
     }, 8000);
 
     mesh.count = count;
-    return () => clearTimeout(safetyTimer);
+    return () => {
+      if (initTimeoutRef.current) clearTimeout(initTimeoutRef.current);
+    };
   }, [
     buildings,
     count,
