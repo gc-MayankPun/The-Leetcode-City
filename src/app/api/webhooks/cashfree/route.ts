@@ -67,19 +67,49 @@ export async function POST(request: Request) {
         }
 
         // Double-check order status with Cashfree API
-        const { orderStatus } = await getCashfreeOrderStatus(orderId);
+        const { orderStatus, orderAmount } = await getCashfreeOrderStatus(orderId);
 
         if (orderStatus !== "PAID") {
           console.warn(`[Cashfree webhook] Order ${orderId} status is ${orderStatus}, not PAID`);
           break;
         }
 
-        // Find the pending purchase by provider_tx_id
-        const { data: purchase } = await sb
-          .from("purchases")
-          .select("id, status")
-          .eq("provider_tx_id", orderId)
-          .eq("provider", "cashfree")
+        // Check if it is a support renewal donation
+        if (orderId.startsWith("support_")) {
+          const supportAmountInr = Math.round(orderAmount);
+          if (supportAmountInr > 0) {
+            // Increment raised_inr inside items table for id='support_renewal'
+            const { data: item } = await sb
+              .from("items")
+              .select("metadata")
+              .eq("id", "support_renewal")
+              .single();
+
+            const currentMeta = (item?.metadata as Record<string, any>) || {};
+            const currentRaised = Number(currentMeta.raised_inr || 0);
+            const targetInr = Number(currentMeta.target_inr || 2900);
+
+            await sb
+              .from("items")
+              .update({
+                metadata: {
+                  ...currentMeta,
+                  raised_inr: currentRaised + supportAmountInr,
+                  target_inr: targetInr,
+                }
+              })
+              .eq("id", "support_renewal");
+
+            console.log(`[Cashfree webhook] Support renewal updated: +${supportAmountInr} INR. New total: ${currentRaised + supportAmountInr} INR.`);
+          }
+          break;
+        }
+
+        // Check if it is a sky ad purchase (linked to orderId)
+        let { data: ad } = await sb
+          .from("sky_ads")
+          .select("id, plan_id, active")
+          .eq("stripe_session_id", orderId)
           .maybeSingle();
 
         if (ad) {

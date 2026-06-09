@@ -54,13 +54,11 @@ export async function POST(request: Request) {
           break;
         }
 
-        // Find pending purchase by provider_tx_id (invoice ID stored at checkout)
-        const { data: purchase } = await sb
-          .from("purchases")
-          .select("id, status, developer_id, item_id, gifted_to")
-          .eq("provider", "nowpayments")
-          .eq("status", "pending")
-          .eq("provider_tx_id", orderId)
+        // Check if it is a sky ad purchase
+        let { data: ad } = await sb
+          .from("sky_ads")
+          .select("id, plan_id, active")
+          .eq("stripe_session_id", orderId)
           .maybeSingle();
 
         if (ad) {
