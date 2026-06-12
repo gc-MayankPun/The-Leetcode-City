@@ -162,9 +162,6 @@ function dataUrlToFile(dataUrl: string, name: string, type: string): File {
 
 const PIX_EXPIRY_SECONDS = 900; // 15 minutes
 
-function formatPrice(item: ShopItem): string {
-  return "₹1";
-}
 
 function formatCountdown(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -650,6 +647,13 @@ export default function ShopClient({
   acceptedMedium = 0,
   acceptedHard = 0,
 }: Props) {
+  const formatPrice = (item: ShopItem): string => {
+    if (item.price_usd_cents === 0) return "FREE";
+    const USD_TO_INR = 85;
+    const amountINR = Math.max(1, Math.ceil((item.price_usd_cents / 100) * USD_TO_INR));
+    return `₹${amountINR}`;
+  };
+
   // Reactive XP level — updated locally after XP code redemption
   const [xpLevel, setXpLevel] = useState(initialXpLevel);
   const isDevAccount = ["ishant_27", "ixotic", "ixotic27"].includes(githubLogin.toLowerCase());
@@ -696,31 +700,11 @@ export default function ShopClient({
     return "building";
   });
 
-  const [isBrazil, setIsBrazil] = useState(false);
-  const [isIndia, setIsIndia] = useState(false);
-  useEffect(() => {
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-      // Brazilian IANA timezones all use Brazilian city names
-      const brTimezones = new Set([
-        "America/Sao_Paulo", "America/Bahia", "America/Belem",
-        "America/Fortaleza", "America/Recife", "America/Maceio",
-        "America/Araguaina", "America/Manaus", "America/Cuiaba",
-        "America/Porto_Velho", "America/Boa_Vista", "America/Campo_Grande",
-        "America/Eirunepe", "America/Rio_Branco", "America/Noronha",
-        "America/Santarem",
-      ]);
-      setIsBrazil(brTimezones.has(tz));
-      // Indian IANA timezone
-      setIsIndia(tz === "Asia/Kolkata" || tz === "Asia/Calcutta");
-    } catch (err) {
-      console.warn("[components/ShopClient.tsx] error:", err);
-      setIsBrazil(false);
-      setIsIndia(false);
-    }
-  }, []);
-
   const [pixModal, setPixModal] = useState<PixModalData | null>(null);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [phoneInputError, setPhoneInputError] = useState<string | null>(null);
+  const [pendingCashfreeItem, setPendingCashfreeItem] = useState<string | null>(null);
   const [customColor, setCustomColor] = useState<string | null>(initialCustomColor);
   const [ledBannerText, setLedBannerText] = useState<string | null>(initialLedBannerText ?? null);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(initialSelectedTitle ?? "auto");
@@ -1109,8 +1093,17 @@ export default function ShopClient({
 
 
   const checkout = useCallback(
-    async (itemId: string, provider: "stripe" | "nowpayments" | "abacatepay" | "cashfree" = "stripe") => {
+    async (itemId: string, provider: "stripe" | "nowpayments" | "abacatepay" | "cashfree" = "stripe", phoneVal?: string) => {
       if (buyingItem) return;
+
+      if (provider === "cashfree" && !phoneVal) {
+        setPendingCashfreeItem(itemId);
+        setPhoneInput("");
+        setPhoneInputError(null);
+        setShowPhoneModal(true);
+        return;
+      }
+
       setBuyingItem(itemId);
       setBuyingProvider(provider);
       setError(null);
@@ -1122,7 +1115,7 @@ export default function ShopClient({
         const res = await fetch("/api/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ item_id: itemId, provider, dev_mode: devModeEnabled }),
+          body: JSON.stringify({ item_id: itemId, provider, dev_mode: devModeEnabled, phone: phoneVal }),
         });
 
         const data = await res.json();
@@ -1147,7 +1140,8 @@ export default function ShopClient({
           // Cashfree: load SDK and open checkout
           try {
             const { load } = await import("@cashfreepayments/cashfree-js");
-            const cashfreeEnv = process.env.NEXT_PUBLIC_CASHFREE_ENV === "PRODUCTION" ? "production" : "sandbox";
+            const envMode = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX").replace(/['"]/g, "").trim();
+            const cashfreeEnv = envMode === "PRODUCTION" ? "production" : "sandbox";
             const cashfree = await load({ mode: cashfreeEnv as "sandbox" | "production" });
             const result = await cashfree.checkout({
               paymentSessionId: data.paymentSessionId,
@@ -1183,6 +1177,20 @@ export default function ShopClient({
     },
     [buyingItem, items, githubLogin, devModeEnabled]
   );
+
+  const handleConfirmPhoneCheckout = useCallback(() => {
+    const trimmed = phoneInput.trim();
+    if (!trimmed || !/^[6-9]\d{9}$/.test(trimmed)) {
+      setPhoneInputError("Please enter a valid 10-digit Indian phone number.");
+      return;
+    }
+    const targetItem = pendingCashfreeItem;
+    setShowPhoneModal(false);
+    setPendingCashfreeItem(null);
+    if (targetItem) {
+      checkout(targetItem, "cashfree", trimmed);
+    }
+  }, [phoneInput, pendingCashfreeItem, checkout]);
 
   const handleBuyWithPoints = useCallback(
     async (itemId: string) => {
@@ -1418,6 +1426,74 @@ export default function ShopClient({
           onClose={() => setPixModal(null)}
           onCompleted={handlePixCompleted}
         />
+      )}
+
+      {/* Cashfree Phone Input Modal */}
+      {showPhoneModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 font-pixel uppercase text-cream">
+          <div className="relative mx-4 w-full max-w-sm border-[3px] border-border bg-bg p-6 text-left">
+            <button
+              onClick={() => {
+                setShowPhoneModal(false);
+                setPendingCashfreeItem(null);
+              }}
+              className="absolute right-3 top-3 text-xs text-muted hover:text-cream"
+            >
+              &#10005;
+            </button>
+            <h3 className="mb-2 text-xs" style={{ color: ACCENT }}>
+              Payment Information
+            </h3>
+            <p className="mb-4 text-[9px] text-muted normal-case leading-relaxed">
+              Cashfree requires a valid 10-digit phone number to process UPI, Card, and Netbanking payments.
+            </p>
+            <div className="mb-4 flex flex-col gap-1.5">
+              <label className="text-[9px] text-muted normal-case font-bold">
+                Phone Number (10 digits, e.g. 9876543210):
+              </label>
+              <input
+                type="tel"
+                maxLength={10}
+                placeholder="Enter phone number"
+                value={phoneInput}
+                onChange={(e) => {
+                  setPhoneInput(e.target.value.replace(/\D/g, ""));
+                  setPhoneInputError(null);
+                }}
+                className="border-[2px] border-border bg-transparent px-3 py-2 text-xs text-cream outline-none focus:border-cream"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleConfirmPhoneCheckout();
+                  }
+                }}
+              />
+              {phoneInputError && (
+                <p className="text-[9px] text-red-400 normal-case mt-0.5">{phoneInputError}</p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowPhoneModal(false);
+                  setPendingCashfreeItem(null);
+                }}
+                className="flex-1 border-[2px] border-border py-1.5 text-[10px] text-muted hover:text-cream"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmPhoneCheckout}
+                className="btn-press flex-1 py-1.5 text-[10px] text-bg"
+                style={{
+                  backgroundColor: ACCENT,
+                  boxShadow: `2px 2px 0 0 ${SHADOW}`,
+                }}
+              >
+                Proceed to Pay
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {error && (
@@ -1693,7 +1769,7 @@ export default function ShopClient({
                             }
                           } else if (isFreeItem) {
                             claimFreeItem();
-                          } else if (shopItem && shopItem.price_usd_cents > 0) {
+                          } else if (shopItem && shopItem.price_usd_cents >= 0) {
                             // Don't allow buying if level locked or quest locked
                             if (isLevelLocked && !isOwned) return;
                             if (itemId === "scouting_satellite" && !isOwned && !(acceptedMedium >= 10 || acceptedHard >= 5)) return;
@@ -1806,7 +1882,7 @@ export default function ShopClient({
                                       Cancel
                                     </button>
                                     <button
-                                      onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout(itemId); }}
+                                      onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout(itemId, "cashfree"); }}
                                       disabled={isBuying}
                                       className="btn-press flex-1 py-1 text-[9px] text-bg disabled:opacity-40"
                                       style={{ backgroundColor: ACCENT, boxShadow: `1px 1px 0 0 ${SHADOW}` }}
@@ -1821,26 +1897,6 @@ export default function ShopClient({
                                   >
                                     Crypto (Coming Soon)
                                   </button>
-                                  {isBrazil && (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout(itemId, "abacatepay"); }}
-                                      disabled={isBuying}
-                                      className="btn-press w-full py-1 text-[9px] text-bg disabled:opacity-40"
-                                      style={{ backgroundColor: "#32bcad", boxShadow: "1px 1px 0 0 #1a7a6e" }}
-                                    >
-                                      {isBuying ? "..." : "Pay with PIX"}
-                                    </button>
-                                  )}
-                                  {isIndia && (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout(itemId, "cashfree"); }}
-                                      disabled={isBuying}
-                                      className="btn-press w-full py-1 text-[9px] text-bg disabled:opacity-40"
-                                      style={{ backgroundColor: "#6739b7", boxShadow: "1px 1px 0 0 #4a2882" }}
-                                    >
-                                      {isBuying ? "..." : "Pay with UPI ₹"}
-                                    </button>
-                                  )}
                                   {shopItem && shopItem.price_points != null && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); handleBuyWithPoints(itemId); }}
@@ -1994,7 +2050,7 @@ export default function ShopClient({
                                   Cancel
                                 </button>
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout("streak_freeze"); }}
+                                  onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout("streak_freeze", "cashfree"); }}
                                   disabled={isBuying}
                                   className="btn-press flex-1 py-1 text-[9px] text-bg disabled:opacity-40"
                                   style={{ backgroundColor: ACCENT, boxShadow: `1px 1px 0 0 ${SHADOW}` }}
@@ -2009,26 +2065,6 @@ export default function ShopClient({
                               >
                                 Crypto (Coming Soon)
                               </button>
-                              {isBrazil && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout("streak_freeze", "abacatepay"); }}
-                                  disabled={isBuying}
-                                  className="btn-press w-full py-1 text-[9px] text-bg disabled:opacity-40"
-                                  style={{ backgroundColor: "#32bcad", boxShadow: "1px 1px 0 0 #1a7a6e" }}
-                                >
-                                  {isBuying ? "..." : "Pay with PIX"}
-                                </button>
-                              )}
-                              {isIndia && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout("streak_freeze", "cashfree"); }}
-                                  disabled={isBuying}
-                                  className="btn-press w-full py-1 text-[9px] text-bg disabled:opacity-40"
-                                  style={{ backgroundColor: "#6739b7", boxShadow: "1px 1px 0 0 #4a2882" }}
-                                >
-                                  {isBuying ? "..." : "Pay with UPI ₹"}
-                                </button>
-                              )}
                             </div>
                           </div>
                         )}
@@ -2040,7 +2076,7 @@ export default function ShopClient({
 
               {/* Payment note */}
               <p className="text-center text-[10px] text-dim normal-case">
-                Payment via Stripe{isIndia ? ", UPI" : ""}{isBrazil ? ", PIX" : ""} & Crypto
+                Payment via UPI & Crypto (Coming Soon)
               </p>
                 </div>
 

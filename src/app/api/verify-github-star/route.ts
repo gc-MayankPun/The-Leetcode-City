@@ -18,12 +18,15 @@ function ghHeaders(): HeadersInit {
 }
 
 async function isStargazer(login: string): Promise<boolean> {
-  const target = login.toLowerCase();
+  const targetRepo = `${REPO_OWNER}/${REPO_NAME}`.toLowerCase();
   let page = 1;
 
-  while (page <= 100) {
+  // We check the user's starred repos instead of the repo's stargazers.
+  // GitHub returns starred repos sorted by `created` desc by default,
+  // meaning recent stars are on the first page!
+  while (page <= 30) {
     const res = await fetch(
-      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/stargazers?per_page=100&page=${page}`,
+      `https://api.github.com/users/${login}/starred?per_page=100&page=${page}`,
       { headers: ghHeaders() },
     );
     if (!res.ok) {
@@ -33,11 +36,11 @@ async function isStargazer(login: string): Promise<boolean> {
       return false;
     }
 
-    const users = (await res.json()) as { login: string }[];
-    if (users.length === 0) break;
+    const repos = (await res.json()) as { full_name: string }[];
+    if (repos.length === 0) break;
 
-    if (users.some((u) => u.login.toLowerCase() === target)) return true;
-    if (users.length < 100) break;
+    if (repos.some((r) => r.full_name.toLowerCase() === targetRepo)) return true;
+    if (repos.length < 100) break;
     page++;
   }
 
@@ -66,7 +69,7 @@ export async function POST() {
   ).toLowerCase();
 
   if (!githubLogin) {
-    return NextResponse.json({ error: "No LeetCode login" }, { status: 400 });
+    return NextResponse.json({ error: "No GitHub login found in session" }, { status: 400 });
   }
 
   const sb = getSupabaseAdmin();
@@ -98,8 +101,9 @@ export async function POST() {
   let starred = false;
   try {
     starred = await isStargazer(githubLogin);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to verify star" }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to verify star";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
   if (!starred) {

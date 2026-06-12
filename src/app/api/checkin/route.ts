@@ -138,8 +138,21 @@ export async function POST(request: Request) {
 
   const githubLogin = dev?.github_login ?? "";
 
-  if (!dev || !dev.claimed) {
-    return NextResponse.json({ error: "Must claim building first" }, { status: 403 });
+  if (!dev) {
+    return NextResponse.json(
+      {
+        error:
+          "Your LeetCode stats are still being synced. Please check back in a few minutes!",
+      },
+      { status: 403 }
+    );
+  }
+
+  if (!dev.claimed) {
+    return NextResponse.json(
+      { error: "Must claim building first" },
+      { status: 403 }
+    );
   }
 
   // Perform check-in via RPC
@@ -199,7 +212,7 @@ export async function POST(request: Request) {
 
     if (!xpLogError) {
       // Insert succeeded — we are the first instance, safe to grant XP
-      const { data: xpData } = await sb.rpc("grant_xp", {
+      const { data: xpData } = await sb.rpc("grant_xp_atomic", {
         p_developer_id: dev.id,
         p_source: "checkin",
         p_amount: 10,

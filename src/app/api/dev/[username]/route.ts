@@ -65,6 +65,10 @@ async function fetchLeetCodeUser(username: string) {
           acSubmissionNum { difficulty count }
           totalSubmissionNum { difficulty count }
         }
+        languageProblemCount {
+          languageName
+          problemsSolved
+        } 
         yearCurrent: userCalendar(year: ${currentYear}) { streak totalActiveDays submissionCalendar }
         yearPrev: userCalendar(year: ${prevYear}) { submissionCalendar }
       }
@@ -173,8 +177,13 @@ export async function GET(
 
   if (!cachedRecord) {
     const data = await fetchLeetCodeUser(username);
-    if (!data?.matchedUser) {
-      if (cached) return NextResponse.json(cached); // return stale if LC fetch fails
+    if (!data) {
+      // Network/parsing error — return stale cached if available
+      if (cached) return NextResponse.json(cached);
+      return NextResponse.json({ error: "Failed to fetch LeetCode data" }, { status: 502 });
+    }
+    if (!data.matchedUser) {
+      // LeetCode explicitly says user doesn't exist — return 404 regardless of cache
       return NextResponse.json({ error: "User not found on LeetCode" }, { status: 404 });
     }
 
@@ -188,6 +197,11 @@ export async function GET(
     const totalSub = getTot("All");
     const activeDays = user.userCalendar?.totalActiveDays ?? 0;
     const lcRank = user.profile?.ranking ?? 999999;
+    const languages = user.languageProblemCount ?? [];
+    const dominantLanguage = languages.length > 0
+      ? [...languages].sort((a: any, b: any) => 
+      b.problemsSolved - a.problemsSolved)[0].languageName
+      : null;
     const litPercentage = Math.min(0.92, Math.max(0.15, activeDays / 365));
 
     // Stable ID from username
@@ -234,6 +248,7 @@ export async function GET(
       lc_twitter: user.profile?.twitterUrl ?? null,
       lc_linkedin: user.profile?.linkedinUrl ?? null,
       lc_github: user.profile?.githubUrl ?? null,
+      primary_language:dominantLanguage,
       // Tag stats
       lc_tag_stats: [
         ...(user.tagProblemCounts?.advanced ?? []),
