@@ -42,20 +42,6 @@ export interface DeveloperRecord {
   xp_level?: number;
   xp_github?: number;
   building_style?: string; // bungalow | tower
-  // City gamification fields
-  led_banner_text?: string | null;
-  achievements?: string[];
-  kudos_count?: number;
-  visit_count?: number;
-  loadout?: CityBuilding["loadout"];
-  app_streak?: number;
-  raid_xp?: number;
-  current_week_contributions?: number;
-  current_week_kudos_given?: number;
-  current_week_kudos_received?: number;
-  active_raid_tag?: CityBuilding["active_raid_tag"];
-  rabbit_completed?: boolean;
-  district_chosen?: boolean;
   // LeetCode-specific fields
   easy_solved?: number;
   medium_solved?: number;
@@ -131,47 +117,6 @@ export interface CityDecoration {
   rotation: number;
   variant: number;
   size?: [number, number];
-}
-
-// ─── Type-safe CityBuilding factory ──────────────────────────
-
-function toCityBuilding(dev: DeveloperRecord, fallbackRank: number) {
-  return {
-    login: dev.github_login,
-    rank: dev.rank ?? fallbackRank,
-    contributions: dev.contributions,
-    total_stars: dev.total_stars,
-    public_repos: dev.public_repos,
-    name: dev.name,
-    avatar_url: dev.avatar_url,
-    primary_language: dev.primary_language,
-    claimed: dev.claimed ?? false,
-    owned_items: dev.owned_items ?? [],
-    custom_color: dev.custom_color ?? null,
-    billboard_images: dev.billboard_images ?? [],
-    led_banner_text: dev.led_banner_text ?? null,
-    achievements: dev.achievements ?? [],
-    kudos_count: dev.kudos_count ?? 0,
-    visit_count: dev.visit_count ?? 0,
-    loadout: dev.loadout ?? null,
-    app_streak: dev.app_streak ?? 0,
-    raid_xp: dev.raid_xp ?? 0,
-    current_week_contributions: dev.current_week_contributions ?? 0,
-    current_week_kudos_given: dev.current_week_kudos_given ?? 0,
-    current_week_kudos_received: dev.current_week_kudos_received ?? 0,
-    active_raid_tag: dev.active_raid_tag ?? null,
-    rabbit_completed: dev.rabbit_completed ?? false,
-    xp_total: dev.xp_total ?? 0,
-    xp_level: dev.xp_level ?? 1,
-    district_chosen: dev.district_chosen ?? false,
-    building_style: dev.building_style ?? "tower",
-    easy_solved: dev.easy_solved ?? undefined,
-    medium_solved: dev.medium_solved ?? undefined,
-    hard_solved: dev.hard_solved ?? undefined,
-    acceptance_rate: dev.acceptance_rate ?? undefined,
-    contest_rating: dev.contest_rating ?? undefined,
-    lc_streak: dev.lc_streak ?? undefined,
-  };
 }
 
 // ─── Spiral Coordinate ──────────────────────────────────────
@@ -780,8 +725,35 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
         : (dev.district ?? inferDistrict(dev.primary_language));
 
       buildings.push({
-        ...toCityBuilding(dev, globalDevIndex + i + 1),
+        login: dev.github_login,
+        rank: dev.rank ?? globalDevIndex + i + 1,
+        contributions: dev.contributions,
+        total_stars: dev.total_stars,
+        public_repos: dev.public_repos,
+        name: dev.name,
+        avatar_url: dev.avatar_url,
+        primary_language: dev.primary_language,
+        claimed: dev.claimed ?? false,
+        owned_items: dev.owned_items ?? [],
+        custom_color: dev.custom_color ?? null,
+        billboard_images: dev.billboard_images ?? [],
+        led_banner_text: (dev as unknown as Record<string, unknown>).led_banner_text as string | null ?? null,
+        achievements: (dev as unknown as Record<string, unknown>).achievements as string[] ?? [],
+        kudos_count: (dev as unknown as Record<string, unknown>).kudos_count as number ?? 0,
+        visit_count: (dev as unknown as Record<string, unknown>).visit_count as number ?? 0,
+        loadout: (dev as unknown as Record<string, unknown>).loadout as CityBuilding["loadout"] ?? null,
+        app_streak: (dev as unknown as Record<string, unknown>).app_streak as number ?? 0,
+        raid_xp: (dev as unknown as Record<string, unknown>).raid_xp as number ?? 0,
+        current_week_contributions: (dev as unknown as Record<string, unknown>).current_week_contributions as number ?? 0,
+        current_week_kudos_given: (dev as unknown as Record<string, unknown>).current_week_kudos_given as number ?? 0,
+        current_week_kudos_received: (dev as unknown as Record<string, unknown>).current_week_kudos_received as number ?? 0,
+        active_raid_tag: (dev as unknown as Record<string, unknown>).active_raid_tag as CityBuilding["active_raid_tag"] ?? null,
+        rabbit_completed: (dev as unknown as Record<string, unknown>).rabbit_completed as boolean ?? false,
+        xp_total: (dev as unknown as Record<string, unknown>).xp_total as number ?? 0,
+        xp_level: (dev as unknown as Record<string, unknown>).xp_level as number ?? 1,
         district: did,
+        district_chosen: (dev as unknown as Record<string, unknown>).district_chosen as boolean ?? false,
+        building_style: dev.building_style ?? "tower",
         position: [posX, 0, posZ],
         width: w,
         depth: d,
@@ -790,6 +762,13 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
         windowsPerFloor,
         sideWindowsPerFloor,
         litPercentage,
+        // LeetCode-specific: pass through for building visuals
+        easy_solved: (dev as unknown as Record<string, unknown>).easy_solved as number ?? undefined,
+        medium_solved: (dev as unknown as Record<string, unknown>).medium_solved as number ?? undefined,
+        hard_solved: (dev as unknown as Record<string, unknown>).hard_solved as number ?? undefined,
+        acceptance_rate: (dev as unknown as Record<string, unknown>).acceptance_rate as number ?? undefined,
+        contest_rating: (dev as unknown as Record<string, unknown>).contest_rating as number ?? undefined,
+        lc_streak: (dev as unknown as Record<string, unknown>).lc_streak as number ?? undefined,
       });
     }
 
