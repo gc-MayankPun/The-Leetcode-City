@@ -22,6 +22,7 @@ import InfiniteWater from "./InfiniteWater";
 import AtmosphereCycleManager from "./AtmosphereCycleManager";
 import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
+import { RainRippleGround } from './weather/RainRippleGround';
 
 // ─── Theme Definitions ───────────────────────────────────────
 
@@ -1039,6 +1040,10 @@ function SkyCollectibles({ playerPosRef, accentColor, onCollect, cityRadius }: {
     geo.rotateZ(Math.PI / 2); // stand upright — flat faces now face left/right
     return geo;
   }, []);
+
+  useEffect(() => {
+    return () => coinGeo.dispose();
+  }, [coinGeo]);
 
   return (
     <>
@@ -2164,8 +2169,9 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
       {isRaining && (
         <>
           <RainParticles />
-          <color attach="background" args={['#3a404a']} />
-          <fog attach="fog" args={['#3a404a', 30, 300]} /> 
+          <RainRippleGround />
+          <color attach="background" args={["#3a404a"]} />
+          <fog attach="fog" args={["#3a404a", 30, 300]} />
         </>
       )}
 
