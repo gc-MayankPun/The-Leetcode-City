@@ -56,9 +56,14 @@ export async function GET(request: Request) {
       .eq("id", before)
       .single();
 
-    if (cursor) {
-      query = query.lt("created_at", cursor.created_at);
+    if (!cursor) {
+      return NextResponse.json(
+        { error: "Invalid pagination cursor" },
+        { status: 400 }
+      );
     }
+
+    query = query.lt("created_at", cursor.created_at);
   }
 
   let events = (await query).data ?? [];
