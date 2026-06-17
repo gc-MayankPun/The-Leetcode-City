@@ -222,34 +222,14 @@ export async function POST(request: NextRequest) {
 
       droppedItems = await rollItemDrops(sb, difficulty, dev.id);
 
-      // Track arena solve to update relic progress
+      // Track arena solve to update relic progress atomically
       try {
-        const { data: custom } = await sb
-          .from("developer_customizations")
-          .select("config")
-          .eq("developer_id", dev.id)
-          .eq("item_id", "relic_progress")
-          .maybeSingle();
+        const { data: newSolves } = await sb.rpc("increment_relic_progress", {
+          p_developer_id: dev.id,
+          p_field: "arena_solves",
+        });
 
-        const progress = custom?.config ?? {
-          docks_visits: 0,
-          arena_solves: 0,
-          raid_wins: 0,
-        };
-
-        progress.arena_solves = (progress.arena_solves ?? 0) + 1;
-
-        await sb.from("developer_customizations").upsert(
-          {
-            developer_id: dev.id,
-            item_id: "relic_progress",
-            config: progress,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "developer_id,item_id" }
-        );
-
-        if (progress.arena_solves >= 20) {
+        if ((newSolves ?? 0) >= 20) {
           await sb.from("developer_relics").upsert(
             {
               developer_id: dev.id,
