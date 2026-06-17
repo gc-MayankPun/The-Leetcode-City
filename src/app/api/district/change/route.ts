@@ -114,32 +114,12 @@ export async function POST(request: Request) {
     reason: "user_choice",
   });
 
-  // Update district population counts
+  // Update district population counts atomically
   if (oldDistrict) {
-    const { data: oldDist } = await admin
-      .from("districts")
-      .select("population")
-      .eq("id", oldDistrict)
-      .single();
-    if (oldDist) {
-      await admin
-        .from("districts")
-        .update({ population: Math.max(0, (oldDist.population ?? 0) - 1) })
-        .eq("id", oldDistrict);
-    }
+    await admin.rpc("decrement_district_population", { district_id: oldDistrict });
   }
 
-  const { data: newDist } = await admin
-    .from("districts")
-    .select("population")
-    .eq("id", district_id)
-    .single();
-  if (newDist) {
-    await admin
-      .from("districts")
-      .update({ population: (newDist.population ?? 0) + 1 })
-      .eq("id", district_id);
-  }
+  await admin.rpc("increment_district_population", { district_id });
 
   return NextResponse.json({ ok: true, district: district_id });
 }
