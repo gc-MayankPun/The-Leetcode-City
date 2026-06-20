@@ -97,16 +97,21 @@ export async function POST(request: Request) {
    }
   const file = formData.get("file") as File | null;
   const slotIndexRaw = formData.get("slot_index");
-  const slotIndexStr = slotIndexRaw !== null ? String(slotIndexRaw).trim() : "0";
 
-  if (!/^\d+$/.test(slotIndexStr)) {
+  if (slotIndexRaw === null || slotIndexRaw instanceof File) {
     return NextResponse.json(
       { error: "Invalid slot_index" },
       { status: 400 }
     );
   }
 
-  const slotIndex = parseInt(slotIndexStr, 10);
+  const slotIndex = parseInt(slotIndexRaw, 10);
+  if (!Number.isFinite(slotIndex) || slotIndex < 0) {
+    return NextResponse.json(
+      { error: "Invalid slot_index" },
+      { status: 400 }
+    );
+  }
 
   if (slotIndex >= billboardCount) {
     return NextResponse.json(
