@@ -11,6 +11,25 @@ import { trackDailyMission } from "@/lib/dailies";
 import { fetchLeetCodeWeeklySubmissions } from "@/lib/leetcode";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+type Developer = {
+  id: number;
+  github_login: string;
+  claimed: boolean;
+  contributions: number;
+  public_repos: number;
+  total_stars: number;
+  kudos_count: number;
+  app_streak: number;
+  streak_freeze_30d_claimed: boolean;
+  last_checkin_date: string | null;
+  easy_solved?: number;
+  medium_solved?: number;
+  hard_solved?: number;
+  contest_rating?: number;
+  lc_streak?: number;
+  total_prs?: number;
+};
+ 
 // A12: Streak reward milestones — {milestone: days, pool: item_ids to pick from}
 const STREAK_MILESTONES = [
   { milestone: 3, pool: ["flag"] },
@@ -94,7 +113,7 @@ async function fetchWeeklyContributions(login: string): Promise<number | null> {
   return fetchLeetCodeWeeklySubmissions(login);
 }
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   const supabase = await createServerSupabase();
   const {
     data: { user },
@@ -115,7 +134,7 @@ export async function POST(request: Request) {
   const sb = getSupabaseAdmin();
 
   // Fetch developer (must be claimed)
-  let { data: devData } = await sb
+  const { data: devData } = await sb
     .from("developers")
     .select(
       "id, github_login, claimed, contributions, public_repos, total_stars, kudos_count, app_streak, streak_freeze_30d_claimed, last_checkin_date",
@@ -123,7 +142,7 @@ export async function POST(request: Request) {
     .eq("claimed_by", user.id)
     .single();
 
-  let dev: any = devData;
+  let dev: Developer | null = devData;
 
   try {
     const { data: v2Data, error: v2Err } = await sb
